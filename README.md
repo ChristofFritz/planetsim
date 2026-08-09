@@ -33,9 +33,9 @@ generated in code, low-poly and flat-shaded.
 
 | Input | Action |
 |---|---|
-| Left drag / WASD | Pan across the surface |
-| Right drag / Q, E | Rotate view |
-| Scroll / R, F | Zoom (space ↔ ground) |
+| Left drag / WASD / one-finger drag | Pan across the surface |
+| Right drag / Q, E / two-finger drag | Rotate view |
+| Scroll / R, F / pinch | Zoom (space ↔ ground) |
 
 ## Development
 

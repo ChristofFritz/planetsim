@@ -85,13 +85,13 @@ export class PlanetCameraController {
       p.y = e.clientY
 
       if (this.pointers.size === 2) {
-        // Pinch: zoom by distance ratio, orbit with the midpoint (each
+        // Two fingers: pinch distance zooms, midpoint drag rotates (each
         // pointer contributes half its delta to the shared midpoint).
         const [a, b] = [...this.pointers.values()]
         const dist = Math.hypot(a.x - b.x, a.y - b.y)
         if (this.pinchDist > 0 && dist > 0) this.zoomBy(this.pinchDist / dist)
         this.pinchDist = dist
-        this.pan(dx / 2, dy / 2)
+        this.rotate(-(dx / 2) * 0.005, (dy / 2) * 0.004)
       } else if (e.buttons & 2 || e.ctrlKey) {
         this.rotate(-dx * 0.005, dy * 0.004)
       } else {
