@@ -50,6 +50,8 @@ export function createDebugGui(app: App) {
   }
 
   const gui = new GUI({ title: 'planetsim' })
+  // Touch devices: the panel would cover most of the screen — start collapsed.
+  if (window.matchMedia('(pointer: coarse)').matches) gui.close()
   const seedCtrl = gui.add(params, 'seed').onFinishChange(onChange)
   gui.add(params, 'randomSeed')
   gui.add(params, 'autoRegen')

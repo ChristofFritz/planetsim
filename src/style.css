@@ -4,8 +4,13 @@ body {
   padding: 0;
   overflow: hidden;
   background: #000;
+  /* No pull-to-refresh / rubber-banding on mobile. */
+  overscroll-behavior: none;
 }
 
 canvas {
   display: block;
+  /* All touch gestures on the canvas belong to the camera controller,
+     not the browser (scroll, pinch-page-zoom, double-tap zoom). */
+  touch-action: none;
 }

@@ -21,8 +21,9 @@ export class PlanetCameraController {
   private pitch = 1.45
   private targetPitch = this.pitch
 
-  private pointerDown = false
-  private pointerButton = 0
+  /** Active pointers (mouse buttons held / fingers down), id -> last position. */
+  private pointers = new Map<number, { x: number; y: number }>()
+  private pinchDist = 0
   private keys = new Set<string>()
 
   private readonly q = new THREE.Quaternion()
@@ -50,34 +51,58 @@ export class PlanetCameraController {
     this.bind()
   }
 
+  private zoomBy(factor: number) {
+    this.targetDistance = THREE.MathUtils.clamp(
+      this.targetDistance * factor,
+      CONFIG.camera.minDistance,
+      CONFIG.radius * CONFIG.camera.maxDistanceFactor,
+    )
+  }
+
   private bind() {
+    // Deltas are computed from stored positions, not e.movementX — touch
+    // pointer events report no movement on some mobile browsers.
     this.dom.addEventListener('pointerdown', (e) => {
-      this.pointerDown = true
-      this.pointerButton = e.button
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
       this.dom.setPointerCapture(e.pointerId)
+      if (this.pointers.size === 2) {
+        const [a, b] = [...this.pointers.values()]
+        this.pinchDist = Math.hypot(a.x - b.x, a.y - b.y)
+      }
     })
-    this.dom.addEventListener('pointerup', (e) => {
-      this.pointerDown = false
-      this.dom.releasePointerCapture(e.pointerId)
-    })
+    const endPointer = (e: PointerEvent) => {
+      this.pointers.delete(e.pointerId)
+      this.pinchDist = 0
+    }
+    this.dom.addEventListener('pointerup', endPointer)
+    this.dom.addEventListener('pointercancel', endPointer)
     this.dom.addEventListener('pointermove', (e) => {
-      if (!this.pointerDown) return
-      if (this.pointerButton === 2 || e.ctrlKey) {
-        this.rotate(-e.movementX * 0.005, e.movementY * 0.004)
+      const p = this.pointers.get(e.pointerId)
+      if (!p) return
+      const dx = e.clientX - p.x
+      const dy = e.clientY - p.y
+      p.x = e.clientX
+      p.y = e.clientY
+
+      if (this.pointers.size === 2) {
+        // Pinch: zoom by distance ratio, orbit with the midpoint (each
+        // pointer contributes half its delta to the shared midpoint).
+        const [a, b] = [...this.pointers.values()]
+        const dist = Math.hypot(a.x - b.x, a.y - b.y)
+        if (this.pinchDist > 0 && dist > 0) this.zoomBy(this.pinchDist / dist)
+        this.pinchDist = dist
+        this.pan(dx / 2, dy / 2)
+      } else if (e.buttons & 2 || e.ctrlKey) {
+        this.rotate(-dx * 0.005, dy * 0.004)
       } else {
-        this.pan(e.movementX, e.movementY)
+        this.pan(dx, dy)
       }
     })
     this.dom.addEventListener(
       'wheel',
       (e) => {
         e.preventDefault()
-        this.targetDistance *= Math.exp(e.deltaY * 0.0012)
-        this.targetDistance = THREE.MathUtils.clamp(
-          this.targetDistance,
-          CONFIG.camera.minDistance,
-          CONFIG.radius * CONFIG.camera.maxDistanceFactor,
-        )
+        this.zoomBy(Math.exp(e.deltaY * 0.0012))
       },
       { passive: false },
     )
